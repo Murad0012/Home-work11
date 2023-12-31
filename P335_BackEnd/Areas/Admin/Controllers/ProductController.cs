@@ -60,7 +60,7 @@ namespace P335_BackEnd.Areas.Admin.Controllers
             var newProduct = new Product();
 
             newProduct.Name = model.Name;
-            newProduct.Price = (decimal)model.Price!;
+            newProduct.Price = (decimal)model.Price;
 
             var foundCategory = _dbContext.Categories.FirstOrDefault(x => x.Id == model.CategoryId);
             if (foundCategory is null) return View(model);
@@ -103,94 +103,63 @@ namespace P335_BackEnd.Areas.Admin.Controllers
 
             return RedirectToAction(nameof(Index));
         }
-        public IActionResult Update(int id)
+
+        public IActionResult Update(int? id)
         {
-            var product = _dbContext.Products.FirstOrDefault(x => x.Id == id);
+            if (id is null) return NotFound();
+
+            var product = _dbContext.Products.Include(x => x.ProductTypeProducts).FirstOrDefault(x => x.Id == id);
 
             var categories = _dbContext.Categories.AsNoTracking().ToList();
-
             var productTypes = _dbContext.ProductTypes.AsNoTracking().ToList();
 
-            var productTypeProduct = _dbContext.ProductTypeProducts.
-                FirstOrDefault(x => x.ProductId == product!.Id);
+            if (product is null) return NotFound();
 
-            ViewData["imageUrl"] = product!.ImageUrl;
-
-            var model = new ProductAddVM
+            var model = new ProductUpdateVM
             {
                 Name = product.Name,
                 Price = product.Price,
-                ProductID = product.Id,
-                ImageUrl = product.ImageUrl,
                 Categories = categories,
                 ProductTypes = productTypes,
-                SelectedCategoryId = product.CategoryId,
-                SelectedProductTypeId = productTypeProduct!.ProductTypeId
+                CategoryId = product.CategoryId,
+                ProductTypeId = product.ProductTypeProducts.FirstOrDefault()?.ProductTypeId,
+                ImageUrl = product.ImageUrl,
             };
 
             return View(model);
         }
 
         [HttpPost]
-        public IActionResult Update(ProductAddVM model)
+        public IActionResult Update(ProductUpdateVM model)
         {
-            if (!ModelState.IsValid)
+            var product = _dbContext.Products.Include(x => x.ProductTypeProducts).FirstOrDefault(x => x.Id == model.Id);
+            if (product is null) return NotFound();
+
+            if (model.ImageUrl != product.ImageUrl && model.Image is null)
             {
-                return View(model);
+                _fileService.DeleteFile(product.ImageUrl && Path.Combine("img", "featured"));
+                product.ImageUrl = null;
+            }
+            else if (model.Image != null)
+            {
+                _fileService.DeleteFile(product.ImageUrl && Path.Combine("img", "featured"));
+                product.ImageUrl = _fileService.AddFile(model.Image, Path.Combine("img", "featured"));
             }
 
-            var categories = _dbContext.Categories.AsNoTracking().ToList();
-            var productTypes = _dbContext.ProductTypes.AsNoTracking().ToList();
-
-            var updatedProduct = _dbContext.Products.
-                FirstOrDefault(x => x.Id == model.ProductID);
-
-         
-            updatedProduct!.Name = model.Name;
-            updatedProduct.ImageUrl = model.ImageUrl;
-            updatedProduct.Price = (decimal)model.Price!;
-            updatedProduct.CategoryId = model.SelectedCategoryId;
-            updatedProduct.ImageUrl = model.ImageUrl;
-
-            if (model.SelectedProductTypeId is not 0)
+            product.Name = model.Name;
+            product.Price = (decimal)model.Price;
+            product.CategoryId = model.CategoryId;
+            product.ProductTypeProducts = new List<ProductTypeProduct>()
             {
-                var foundProductType = _dbContext.ProductTypes.
-                    FirstOrDefault(x => x.Id == model.SelectedProductTypeId);
-
-                if (foundProductType is null) return View(model);
-
-                var foundProductTypeProduct = _dbContext.ProductTypeProducts.
-                    FirstOrDefault(x => x.ProductTypeId == foundProductType.Id);
-
-                if (foundProductTypeProduct is null) return View(model);
-
-                foreach (var product in updatedProduct.ProductTypeProducts)
+                new()
                 {
-                    product.ProductTypeId = foundProductType.Id;
+                    ProductTypeId = (int)model.ProductTypeId
                 }
-            }
+            };
 
-            _dbContext.Update(updatedProduct);
             _dbContext.SaveChanges();
 
             return RedirectToAction(nameof(Index));
         }
-
-        public IActionResult DeleteImage(string path)
-        {
-            if (!string.IsNullOrEmpty(path))
-            {
-                var newPath = Path.Combine
-                    (Directory.GetCurrentDirectory(), "wwwroot//img/featured", path);
-
-                if (System.IO.File.Exists(newPath)) System.IO.File.Delete(newPath);
-
-            }
-
-            _dbContext.SaveChanges();
-
-            return RedirectToAction(nameof(Update));
-        }
-
     }
 }

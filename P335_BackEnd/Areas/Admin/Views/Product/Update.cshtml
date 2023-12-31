@@ -1,4 +1,4 @@
-﻿@model ProductAddVM
+﻿@model ProductUpdateVM
 @using P335_BackEnd.Entities
 
 <h1>Update product</h1>
@@ -21,31 +21,36 @@
     <div class="form-row">
         <div class="form-group col-md-4">
             <label for="3">Category</label>
-            <select asp-for="SelectedCategoryId" asp-items="@new SelectList(Model.Categories, nameof(Category.Id), nameof(Category.Name))" id="3" class="form-control">
+            <select asp-for="CategoryId" asp-items="@new SelectList(Model.Categories, nameof(Category.Id), nameof(Category.Name))" id="3" class="form-control">
                 <option disabled selected>Choose category</option>
             </select>
         </div>
         <br />
         <div class="form-group col-md-4">
             <label for="4">Type</label>
-            <select asp-for="SelectedProductTypeId" asp-items="@new SelectList(Model.ProductTypes, nameof(ProductType.Id), nameof(ProductType.Name))" id="4" class="form-control">
+            <select asp-for="ProductTypeId" asp-items="@new SelectList(Model.ProductTypes, nameof(ProductType.Id), nameof(ProductType.Name))" id="4" class="form-control">
                 <option disabled selected>Choose type</option>
             </select>
         </div>
         <br />
         <div class="form-group col-md-4">
-            <label for="5">Image</label>
-            <input asp-for="Image" type="file" class="form-control img-input" id="5" />
-            <img class="img-preview" src='~/img/featured/@ViewData["imageUrl"]' style="width: 120px; height: 100px"/>
-            <button class="btn btn-danger del-btn"><a asp-action="DeleteImage" style="text-decoration:none; color:white;">Delete Image</a></button>
+            <label for="5">Type</label>
+            <input asp-for="Image" type="file" class="form-control img-input" id="5">
+            <img src="~img/featured/@Model.ImageUrl" class="img-preview" />
+            @if (Model.ImageUrl != null)
+            {
+                <a class="btn btn-danger delete-img">Delete img</a>
+            }
         </div>
         <br />
+        <input hidden asp-for="Id" />
+        <input class="image-url-input" hidden asp-for="ImageUrl" />
     </div>
     <div class="form-group">
     </div>
     <button type="submit" class="btn btn-primary">Update</button>
 </form>
 
-@section Scripts{
-    <script src="~/js/productAdd.js"></script>
+@section Scripts {
+    <script src="~/js/productUpdate.js"></script>
 }
